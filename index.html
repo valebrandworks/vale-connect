@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#171b20"><title>VALE Connect | Prototype</title>
+<style>
+:root{font-family:Inter,system-ui,Arial,sans-serif;color:#f6f0e5;background:#15191e}*{box-sizing:border-box}body{margin:0}header{padding:18px 5%;border-bottom:1px solid #444;background:#20252b;display:flex;justify-content:space-between;align-items:center;gap:12px}.brand{font-weight:800;letter-spacing:.13em;color:#d4ac56}.tag{font-size:12px;color:#c6c4be}.wrap{max-width:950px;margin:auto;padding:30px 18px 80px}.eyebrow{color:#d4ac56;letter-spacing:.2em;font-size:12px}h1{font-size:clamp(32px,6vw,52px);margin:8px 0}h2{margin:0 0 14px}p{line-height:1.6;color:#d0d0cf}.card{border:1px solid #454748;background:linear-gradient(140deg,#282d32,#1b2025);padding:25px;border-radius:18px;margin:20px 0;box-shadow:0 12px 35px #0003}.actions{display:flex;gap:10px;flex-wrap:wrap}.btn,button{border:1px solid #c9a24d;border-radius:9px;padding:12px 16px;background:#c9a24d;color:#15191e;font-weight:700;cursor:pointer;text-decoration:none;font-size:14px}.secondary{background:transparent;color:#f6f0e5;border-color:#777}.nav{display:flex;gap:8px;flex-wrap:wrap;margin:22px 0}.nav button[aria-selected=true]{background:#c9a24d;color:#15191e}.nav button{background:#262b31;color:#eee}section[hidden]{display:none}label{display:block;margin:14px 0 6px;color:#eee;font-size:14px}input,textarea,select{width:100%;background:#11151a;border:1px solid #65676a;color:white;padding:12px;border-radius:8px;font:inherit}textarea{min-height:90px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}.stat{padding:18px;border:1px solid #484b4f;border-radius:12px;background:#23282e}.stat strong{font-size:26px;color:#e1ba68}.small{font-size:12px;color:#aeb0b3}.pill{display:inline-block;border:1px solid #7e6b44;color:#e2bb69;padding:4px 8px;border-radius:99px;font-size:12px}.entry{border-top:1px solid #454748;padding:14px 0}.entry strong{color:#fff}footer{margin-top:45px;color:#aeb0b3;font-size:12px}a{color:#e3bc70}
+</style></head>
+<body><header><div class="brand">VALE <span style="color:#fff">CONNECT</span></div><div class="tag">BUSINESS · PROTOTYPE 0.1</div></header>
+<main class="wrap"><div class="eyebrow">MEET · CONNECT · GROW</div><h1>Beyond the business card.</h1><p>Turn introductions into opportunities, with a smarter way to exchange information and remember what comes next.</p>
+<div class="nav" role="tablist" aria-label="Demo screens">
+<button type="button" data-tab="profile" aria-selected="true">Digital Profile</button>
+<button type="button" data-tab="connect" aria-selected="false">Connect Back</button>
+<button type="button" data-tab="dashboard" aria-selected="false">Dashboard</button></div>
+<section id="profile"><div class="card"><span class="pill">DEMO PROFILE</span><h2>VALE Brandworks</h2><p>Custom graphics, vinyl decals, apparel, signs & branded products.</p><div class="actions">
+<a class="btn" href="https://valebrandworks.github.io/vale-digital-business-card/" target="_blank" rel="noopener">View Our Live Card</a>
+<button type="button" class="secondary" id="connectNow">Connect Back</button>
+<button type="button" class="secondary" id="share">Share Demo</button></div></div>
+<div class="grid"><div class="stat"><strong>01</strong><p>Share your digital identity</p></div><div class="stat"><strong>02</strong><p>Exchange details by choice</p></div><div class="stat"><strong>03</strong><p>Remember the next step</p></div></div></section>
+<section id="connect" hidden><div class="card"><span class="pill">LOCAL DEMO ONLY</span><h2>Make a connection</h2><p>This form is a simulation. It does not send information to VALE or anyone else. Please enter fictional details only.</p>
+<form id="form"><label for="name">Demo contact name</label><input id="name" required maxlength="80" placeholder="e.g. Jordan Sample">
+<label for="company">Demo business</label><input id="company" maxlength="80" placeholder="e.g. Sample Contracting">
+<label for="interest">What did you discuss?</label><textarea id="interest" maxlength="300" placeholder="e.g. Truck decals and shirts"></textarea>
+<label for="next">Next step</label><select id="next"><option>Send a quote</option><option>Schedule a meeting</option><option>Follow up</option><option>Stay in touch</option></select>
+<p class="small">Entries are stored only in this browser on this device, using localStorage. Don't enter real personal information.</p>
+<button type="submit">Add Sample Connection</button></form></div></section>
+<section id="dashboard" hidden><div class="card"><span class="pill">SIMULATED DATA</span><h2>Networking dashboard</h2><div class="grid"><div class="stat"><strong id="count">0</strong><p>Sample connections</p></div><div class="stat"><strong id="quotes">0</strong><p>Quote follow-ups</p></div></div><h3>Connections</h3><div id="entries"></div><button type="button" class="secondary" id="reset">Reset demo data</button></div></section>
+<footer>VALE Connect is an early interactive concept, not a live contact collection service. No accounts, server, notifications, or real CRM are connected.</footer>
+</main>
+<script>
+const key='vale-connect-demo-v01';
+const seed=[{name:'Alex Example',company:'Example Roofing',interest:'Discussed branded work shirts',next:'Send a quote'},{name:'Taylor Sample',company:'Sample Home Services',interest:'Interested in truck decals',next:'Follow up'}];
+let records;try{records=JSON.parse(localStorage.getItem(key))||seed}catch{records=seed}
+function save(){localStorage.setItem(key,JSON.stringify(records))}
+function tab(id){document.querySelectorAll('main section').forEach(s=>s.hidden=s.id!==id);document.querySelectorAll('[data-tab]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.tab===id)));if(id==='dashboard')render()}
+document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>tab(b.dataset.tab)));
+document.getElementById('connectNow').onclick=()=>tab('connect');
+document.getElementById('share').onclick=async()=>{if(navigator.share){try{await navigator.share({title:'VALE Connect Demo',url:location.href})}catch{}}else{try{await navigator.clipboard.writeText(location.href);alert('Demo link copied')}catch{alert('Copy this page address from your browser')}}};
+document.getElementById('form').addEventListener('submit',e=>{e.preventDefault();const g=id=>document.getElementById(id).value.trim();records.unshift({name:g('name'),company:g('company'),interest:g('interest'),next:g('next')});save();e.target.reset();tab('dashboard')});
+function render(){document.getElementById('count').textContent=records.length;document.getElementById('quotes').textContent=records.filter(x=>x.next==='Send a quote').length;const box=document.getElementById('entries');box.replaceChildren();for(const r of records){const div=document.createElement('div');div.className='entry';const strong=document.createElement('strong');strong.textContent=r.name+' · '+(r.company||'No business');const p=document.createElement('p');p.textContent=r.interest||'No notes';const small=document.createElement('span');small.className='pill';small.textContent=r.next;div.append(strong,p,small);box.append(div)}}
+document.getElementById('reset').onclick=()=>{if(confirm('Reset sample connections?')){records=structuredClone(seed);save();render()}};render();
+</script></body></html>
