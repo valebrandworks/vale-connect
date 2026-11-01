@@ -3,7 +3,7 @@ const $=id=>document.getElementById(id);if(!$('cloud-config'))return;
 const DEFAULT_URL='https://xmrhohffgmfqhisqzaqb.supabase.co',DEFAULT_KEY='sb_publishable_L7wiZqvAKPtX-XII-8FiWg_bFRgybwZ';
 const CARD_KEY='vale-connect-v03-card', FIELDS=['fullName','jobTitle','company','phone','email','website','bio','socials'];
 const COLUMNS='full_name,business_name,email,phone,website,job_title,bio,social_links';
-let client=null,user=null,busy=false,pending=false,checking=false,interval=null;
+let client=null,user=null,busy=false,pending=false,checking=false,interval=null,localSaveRequested=false;
 const msg=(id,value)=>{const el=$(id);if(el)el.textContent=value};
 function status(value){msg('cloud-profile-status',value);msg('card-sync-status','Cloud sync: '+value)}
 function readCard(){try{return JSON.parse(localStorage.getItem(CARD_KEY)||'{}')}catch{return {}}}
@@ -17,7 +17,7 @@ function setBaseline(c){localStorage.setItem(baselineKey(),signature(c))}
 function applyCloud(c){localStorage.setItem(CARD_KEY,JSON.stringify(c));setBaseline(c);window.dispatchEvent(new CustomEvent('vale-cloud-card-loaded',{detail:c}))}
 function setSignedIn(account){const prev=user?.id;user=account;msg('cloud-session',account?'Signed in as '+account.email:'Not signed in');$('cloud-signout').hidden=!account;for(const id of ['cloud-upload','cloud-load','cloud-sync'])$(id).disabled=!account;if(prev!==account?.id){if(interval)clearInterval(interval);interval=null;if(account){interval=setInterval(()=>{if(!document.hidden)void checkCloud()},20000);setTimeout(()=>void checkCloud(),0)}else status('Not signed in; saved on this device only.')}}
 async function fetchCloud(){const {data,error}=await client.from('profiles').select(COLUMNS).eq('id',user.id).maybeSingle();if(error)throw error;return data?fromCloud(data):null}
-async function checkCloud(){if(!client||!user||busy||checking)return;const accountId=user.id;checking=true;try{const remote=await fetchCloud();if(!user||user.id!==accountId)return;const local=normalize(readCard()),base=getBaseline(),ls=signature(local),rs=remote?signature(remote):null;
+async function checkCloud(){if(!client||!user||busy||checking)return;const accountId=user.id;checking=true;try{const remote=await fetchCloud();if(!user||user.id!==accountId||localSaveRequested||busy)return;const local=normalize(readCard()),base=getBaseline(),ls=signature(local),rs=remote?signature(remote):null;
 if(!remote){if(local.fullName)status('No cloud card found. Use Save my card to cloud to upload this device’s card.');else status('No cloud card saved yet.');return}
 if(ls===rs){setBaseline(remote);status('Up to date ✓');return}
 if(!local.fullName){applyCloud(remote);status('Latest cloud card loaded ✓');return}
@@ -25,11 +25,11 @@ if(base!==null&&ls===base&&rs!==base){applyCloud(remote);status('Updated from cl
 if(base!==null&&rs===base&&ls!==base){status('Unsynced local changes. Save Card to sync, or load the cloud version.');return}
 status('Two versions differ. Nothing overwritten. Choose Save my card to cloud or Load cloud card onto this device.');
 }catch(err){status('Cloud check failed: '+(err.message||err))}finally{checking=false}}
-async function saveCloud(automatic=false){if(!client||!user){status('Not signed in; saved on this device only.');return false}if(busy){pending=true;return false}busy=true;const accountId=user.id;try{const local=normalize(readCard());if(!local.fullName){status('Enter your name and save your card first.');return false}status('Saving…');const remote=await fetchCloud();if(!user||user.id!==accountId)return false;const base=getBaseline();if(automatic&&remote&&signature(remote)!==signature(local)&&base!==null&&signature(remote)!==base){status('Sync paused: cloud changed on another device. Nothing overwritten. Choose which version to keep in Cloud Account.');return false}
+async function saveCloud(automatic=false){if(!client||!user){localSaveRequested=false;status('Not signed in; saved on this device only.');return false}if(busy){pending=true;return false}busy=true;const accountId=user.id;try{const local=normalize(readCard());if(!local.fullName){status('Enter your name and save your card first.');return false}status('Saving…');const remote=await fetchCloud();if(!user||user.id!==accountId)return false;const base=getBaseline();if(automatic&&remote&&signature(remote)!==signature(local)&&base!==null&&signature(remote)!==base){status('Sync paused: cloud changed on another device. Nothing overwritten. Choose which version to keep in Cloud Account.');return false}
 if(automatic&&remote&&base===null&&signature(remote)!==signature(local)){status('Sync paused: this device and cloud differ. Choose which version to keep in Cloud Account.');return false}
 const {error}=await client.from('profiles').upsert(toCloud(local,accountId),{onConflict:'id'});if(error)throw error;setBaseline(local);status('Saved to cloud ✓');return true
-}catch(err){status('Cloud save failed: '+(err.message||err));return false}finally{busy=false;if(pending){pending=false;setTimeout(()=>void saveCloud(true),0)}}}
-window.addEventListener('vale-card-saved',()=>void saveCloud(true));
+}catch(err){status('Cloud save failed: '+(err.message||err));return false}finally{busy=false;if(pending){pending=false;setTimeout(()=>void saveCloud(true),0)}else{localSaveRequested=false;setTimeout(()=>void checkCloud(),0)}}}
+window.addEventListener('vale-card-saved',()=>{localSaveRequested=true;void saveCloud(true)});
 window.addEventListener('focus',()=>void checkCloud());document.addEventListener('visibilitychange',()=>{if(!document.hidden)void checkCloud()});
 async function init(){if(!window.supabase?.createClient){status('Supabase library could not load. Check internet connection.');return}try{client=window.supabase.createClient(DEFAULT_URL,DEFAULT_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});$('cloud-url').value=DEFAULT_URL;$('cloud-key').value=DEFAULT_KEY;const {data,error}=await client.auth.getUser();if(error&&!/session missing|auth session missing/i.test(error.message))msg('cloud-auth-status',error.message);setSignedIn(data?.user||null);client.auth.onAuthStateChange((_event,session)=>setSignedIn(session?.user||null));msg('cloud-config-status','Cloud connection ready.')}catch(err){status('Cloud initialization failed: '+err.message)}}
 $('cloud-config').addEventListener('submit',e=>{e.preventDefault();status('Cloud connection is configured for VALE Connect. No changes required.')});
